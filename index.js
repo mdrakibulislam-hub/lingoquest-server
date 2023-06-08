@@ -55,6 +55,14 @@ async function run() {
             res.send(result)
         });
 
+        app.get('/allclasses/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email);
+            const filter = { "instructorEmail": email };
+            const result = await classesapi.find(filter).toArray();
+            res.send(result);
+        })
+
 
 
 
