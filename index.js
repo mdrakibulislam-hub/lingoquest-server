@@ -3,16 +3,16 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config()
 const port = process.env.port || 5000;
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
 
 // ::::::::::: MIDDLEWARES ::::::::::::
 app.use(cors());
 app.use(express.json());
 
-console.log(process.env.DB_PASS);
 
 // ::::::::::::::: MONGODB :::::::::::::::
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eqiwocl.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -34,7 +34,6 @@ async function run() {
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         const classesapi = client.db('lingoquest').collection('lingoquest-classes');
-
         const instructorsapi = client.db('lingoquest').collection('lingoquest-instructors')
 
 
@@ -48,6 +47,14 @@ async function run() {
             res.send(instructors)
         })
 
+        app.get('/instructor/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) };
+            const result = await instructorsapi.findOne(query);
+            res.send(result)
+        });
+
 
 
 
@@ -58,7 +65,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
 
 
 app.get('/', (req, res) => {
