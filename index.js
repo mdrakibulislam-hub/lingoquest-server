@@ -35,6 +35,7 @@ async function run() {
 
         const classesapi = client.db('lingoquest').collection('lingoquest-classes');
         const instructorsapi = client.db('lingoquest').collection('lingoquest-instructors')
+        const allusersapi = client.db('lingoquest').collection('allusers')
 
 
         app.get('/allclasses', async (req, res) => {
@@ -61,6 +62,18 @@ async function run() {
             const filter = { "instructorEmail": email };
             const result = await classesapi.find(filter).toArray();
             res.send(result);
+        })
+
+        app.post("/allusers", async (req, res) => {
+            const email = req.body.email;
+            console.log(email);
+            const emailFind = await allusersapi.findOne({ email: email });
+            if (emailFind) { return res.status(409).send({ message: "User already exist" }) }
+            const body = req.body;
+            console.log(body);
+            const result = await allusersapi.insertOne(body);
+            res.send(result)
+
         })
 
 
