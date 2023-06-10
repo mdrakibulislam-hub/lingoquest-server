@@ -36,6 +36,7 @@ async function run() {
         const classesapi = client.db('lingoquest').collection('lingoquest-classes');
         const instructorsapi = client.db('lingoquest').collection('lingoquest-instructors')
         const allusersapi = client.db('lingoquest').collection('allusers')
+        const cartsapi = client.db('lingoquest').collection('cart')
 
 
         app.get('/allclasses', async (req, res) => {
@@ -76,6 +77,13 @@ async function run() {
 
         })
 
+
+        app.post("/cart", async (req, res) => {
+            const body = req.body;
+            console.log(body);
+            const result = await cartsapi.insertOne(body)
+            res.send(result)
+        });
 
 
 
