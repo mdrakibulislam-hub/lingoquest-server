@@ -85,6 +85,15 @@ async function run() {
             res.send(result)
         });
 
+        app.get("/users/role/:email", async (req, res) => {
+            const email = req.params.email
+            console.log(email);
+            const query = { "email": email }
+            const user = await allusersapi.findOne(query);
+            const result = user?.role || { message: "user not found" }
+            res.send(result)
+        })
+
 
 
 
