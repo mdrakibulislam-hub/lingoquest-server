@@ -78,7 +78,7 @@ async function run() {
         app.get('/allclasses/:email', async (req, res) => {
             const email = req.params.email;
             console.log(email);
-            const filter = { "instructorEmail": email };
+            const filter = { instructorEmail: email, status: "approved" };
             const result = await classesapi.find(filter).toArray();
             res.send(result);
         })
@@ -172,6 +172,20 @@ async function run() {
             const updateDoc = {
                 $set: {
                     status: "reject"
+                }
+            }
+            const result = await classesapi.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
+        // ::::::::::::: pending class approve status update api :::::::::::::
+        app.patch("/classes/approved/:id", async (req, res) => {
+            const id = req.params.id
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    status: "approved"
                 }
             }
             const result = await classesapi.updateOne(filter, updateDoc);
