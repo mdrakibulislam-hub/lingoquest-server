@@ -39,16 +39,32 @@ async function run() {
         const cartsapi = client.db('lingoquest').collection('cart')
 
 
-        app.get('/allclasses', async (req, res) => {
+
+
+
+        // :::::::::::::: get all classes for admin api ::::::::::::::::::
+        app.get('/allclassesforadmin', async (req, res) => {
             const classes = await classesapi.find({}).toArray();
             res.send(classes)
         })
 
+
+        // :::::::::::::: get classes which are approved api ::::::::::::::::::
+        app.get('/allclasses', async (req, res) => {
+            const classes = await classesapi.find({ status: "approved" }).toArray();
+            res.send(classes)
+        })
+
+
+
+        // :::::::::::::: get instructors api ::::::::::::::::::
         app.get('/instructors', async (req, res) => {
             const instructors = await instructorsapi.find({}).toArray();
             res.send(instructors)
         })
 
+
+        // :::::::::::::: get specific instructor's data by id api ::::::::::::::::::
         app.get('/instructor/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
@@ -57,6 +73,8 @@ async function run() {
             res.send(result)
         });
 
+
+        // :::::::::::::: get classes by instructor api ::::::::::::::::::
         app.get('/allclasses/:email', async (req, res) => {
             const email = req.params.email;
             console.log(email);
@@ -65,6 +83,8 @@ async function run() {
             res.send(result);
         })
 
+
+        // :::::::::::::: post user login data to allusers api ::::::::::::::::::
         app.post("/allusers", async (req, res) => {
             const email = req.body.email;
             console.log(email);
@@ -78,6 +98,7 @@ async function run() {
         })
 
 
+        // :::::::::::::: post data to cart api ::::::::::::::::::
         app.post("/cart", async (req, res) => {
             const body = req.body;
             console.log(body);
@@ -85,6 +106,9 @@ async function run() {
             res.send(result)
         });
 
+
+
+        // :::::::::::::: get user role api ::::::::::::::::::
         app.get("/users/role/:email", async (req, res) => {
             const email = req.params.email
             console.log(email);
@@ -93,6 +117,68 @@ async function run() {
             const result = user?.role || { message: "user not found" }
             res.send(result)
         })
+
+
+        // :::::::::::::: get selected classes by email api ::::::::::::::::::
+        app.get("/user/selectedclasses/:email", async (req, res) => {
+            const email = req.params.email
+            console.log(email);
+            const query = { "email": email }
+            const result = await cartsapi.find(query).toArray();
+            res.send(result)
+        })
+
+        // :::::::::::::: get all users api ::::::::::::::::::
+        app.get("/user", async (req, res) => {
+            const result = await allusersapi.find({}).toArray();
+            res.send(result)
+        })
+
+
+        // :::::::::::::: make user role to admin request ::::::::::::
+        app.patch("/updaterole/admin/:id", async (req, res) => {
+            const id = req.params.id
+            console.log(id);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    role: "admin"
+                },
+            }
+            const result = await allusersapi.updateOne(filter, updateDoc);
+            res.send(result)
+
+        })
+
+        // ::::::::::::::: make user role to instructor request ::::::::::::::
+        app.patch("/updaterole/instructor/:id", async (req, res) => {
+            const id = req.params.id
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: "instructor"
+                }
+            }
+            const result = await allusersapi.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
+        // ::::::::::::::: pending class reject status update api :::::::::::::
+        app.patch("/classes/reject/:id", async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    status: "reject"
+                }
+            }
+            const result = await classesapi.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
+
 
 
 
