@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.port || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -9,6 +10,28 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 // ::::::::::: MIDDLEWARES ::::::::::::
 app.use(cors());
 app.use(express.json());
+
+// ::::::::::::::: verify authentication via JWT ::::::::::::::
+const verifyJWT = (req, res, next) => {
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: "Unauthorized access" });
+    }
+    const token = authorization.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ error: true, message: "Unauthorized access" })
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
+
+
+
+
 
 
 // ::::::::::::::: MONGODB :::::::::::::::
@@ -39,8 +62,43 @@ async function run() {
         const cartsapi = client.db('lingoquest').collection('cart')
 
 
+        // :::::::::::::::::::: verify admin via jwt :::::::::::::::
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            console.log(email);
+            const query = { email: email }
+            console.log(query);
+            const user = await allusersapi.findOne(query);
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' });
+            }
+            next();
+        }
 
 
+        // :::::::::::::::::::: verify instructor via jwt :::::::::::::::
+
+        const verifyInstructor = async (req, res, next) => {
+            const email = req.decoded.email;
+            console.log(email);
+            const query = { email: email }
+            console.log(query);
+            const user = await allusersapi.findOne(query);
+            if (user?.role !== 'instructor') {
+                return res.status(403).send({ error: true, message: 'forbidden message' });
+            }
+            next();
+        }
+
+
+        // ::::::::::: JWT for security ::::::::::::
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+
+            res.send({ token })
+        })
 
         // :::::::::::::: get all classes for admin api ::::::::::::::::::
         app.get('/allclassesforadmin', async (req, res) => {
@@ -129,7 +187,7 @@ async function run() {
         })
 
         // :::::::::::::: get all users api ::::::::::::::::::
-        app.get("/user", async (req, res) => {
+        app.get("/user", verifyJWT, verifyAdmin, async (req, res) => {
             const result = await allusersapi.find({}).toArray();
             res.send(result)
         })
