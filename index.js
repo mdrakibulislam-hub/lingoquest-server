@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.port || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 
 
 // ::::::::::: MIDDLEWARES ::::::::::::
@@ -60,6 +61,7 @@ async function run() {
         const instructorsapi = client.db('lingoquest').collection('lingoquest-instructors')
         const allusersapi = client.db('lingoquest').collection('allusers')
         const cartsapi = client.db('lingoquest').collection('cart')
+        const enrolledclassapi = client.db('lingoquest').collection('enrolledclass')
 
 
         // :::::::::::::::::::: verify admin via jwt :::::::::::::::
@@ -101,8 +103,8 @@ async function run() {
         })
 
         // :::::::::::::: get all classes for admin api ::::::::::::::::::
-        app.get('/allclassesforadmin', async (req, res) => {
-            const classes = await classesapi.find({}).toArray();
+        app.get('/allclassesforadmin', verifyJWT, verifyAdmin, async (req, res) => {
+            const classes = await classesapi.find({}).sort({ totalStudents: -1 }).toArray();
             res.send(classes)
         })
 
@@ -117,7 +119,7 @@ async function run() {
 
         // :::::::::::::: get instructors api ::::::::::::::::::
         app.get('/instructors', async (req, res) => {
-            const instructors = await instructorsapi.find({}).toArray();
+            const instructors = await instructorsapi.find({}).sort({ totalStudents: -1 }).toArray();
             res.send(instructors)
         })
 
@@ -157,7 +159,7 @@ async function run() {
 
 
         // :::::::::::::: post data to cart api ::::::::::::::::::
-        app.post("/cart", async (req, res) => {
+        app.post("/cart", verifyJWT, async (req, res) => {
             const body = req.body;
             console.log(body);
             const result = await cartsapi.insertOne(body)
@@ -178,13 +180,26 @@ async function run() {
 
 
         // :::::::::::::: get selected classes by email api ::::::::::::::::::
-        app.get("/user/selectedclasses/:email", async (req, res) => {
+        app.get("/user/selectedclasses/:email", verifyJWT, async (req, res) => {
             const email = req.params.email
             console.log(email);
-            const query = { "email": email }
+            const query = { "email": email, payment: "unpaid" }
             const result = await cartsapi.find(query).toArray();
             res.send(result)
         })
+
+
+
+        // :::::::::::::: get paid classes by email api ::::::::::::::::::
+        app.get("/user/paidclasses/:email", verifyJWT, async (req, res) => {
+            const email = req.params.email
+            console.log(email);
+            const query = { "email": email, payment: "paid" }
+            const result = await cartsapi.find(query).toArray();
+            res.send(result)
+        })
+
+
 
         // :::::::::::::: get all users api ::::::::::::::::::
         app.get("/user", verifyJWT, verifyAdmin, async (req, res) => {
@@ -194,7 +209,7 @@ async function run() {
 
 
         // :::::::::::::: make user role to admin request ::::::::::::
-        app.patch("/updaterole/admin/:id", async (req, res) => {
+        app.patch("/updaterole/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = { _id: new ObjectId(id) };
@@ -209,7 +224,7 @@ async function run() {
         })
 
         // ::::::::::::::: make user role to instructor request ::::::::::::::
-        app.patch("/updaterole/instructor/:id", async (req, res) => {
+        app.patch("/updaterole/instructor/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = { _id: new ObjectId(id) }
@@ -223,7 +238,7 @@ async function run() {
         })
 
         // :::::::::::::::: post instructor data to instructor db collection :::::::::::
-        app.post("/instructor", async (req, res) => {
+        app.post("/instructor", verifyJWT, verifyAdmin, async (req, res) => {
             const instructorDetails = req.body;
             console.log(instructorDetails);
             const result = await instructorsapi.insertOne(instructorDetails);
@@ -232,7 +247,7 @@ async function run() {
 
 
         // ::::::::::::::: pending class reject status update api :::::::::::::
-        app.patch("/classes/reject/:id", async (req, res) => {
+        app.patch("/classes/reject/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const filter = { _id: new ObjectId(id) }
@@ -246,7 +261,7 @@ async function run() {
         })
 
         // ::::::::::::: pending class approve status update api :::::::::::::
-        app.patch("/classes/approved/:id", async (req, res) => {
+        app.patch("/classes/approved/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = { _id: new ObjectId(id) }
@@ -261,7 +276,7 @@ async function run() {
 
 
         // ::::::::::::: admin class feedback request :::::::::::::
-        app.patch("/sendfeedback/class/:id", async (req, res) => {
+        app.patch("/sendfeedback/class/:id", verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const feedback = req.body.userFeedback;
             console.log(id, feedback);
@@ -276,7 +291,7 @@ async function run() {
 
 
         //:::::::::::::: add class to database collection ::::::::::::
-        app.post("/allclasses", async (req, res) => {
+        app.post("/allclasses", verifyJWT, verifyInstructor, async (req, res) => {
             const classData = req.body
             console.log(classData);
             const result = await classesapi.insertOne(classData);
@@ -285,7 +300,7 @@ async function run() {
 
 
         // ::::::::::::::::::: get instructor all class ::::::::::::::::::::::
-        app.get("/classes/all/instructor/:email", async (req, res) => {
+        app.get("/classes/all/instructor/:email", verifyJWT, verifyInstructor, async (req, res) => {
             const email = req.params.email;
             console.log(email);
             const filter = { instructorEmail: email };
@@ -295,7 +310,7 @@ async function run() {
 
 
         // :::::::::::::::::: handle instructor class delete ::::::::::::::::
-        app.delete("/allclasses/delete/:id", async (req, res) => {
+        app.delete("/allclasses/delete/:id", verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
             const result = await classesapi.deleteOne(filter);
@@ -303,14 +318,83 @@ async function run() {
         })
 
         // :::::::::::::: selected class delete api :::::::::::::
-        app.delete("/user/selectedclasses/:id", async (req, res) => {
+        app.delete("/user/selectedclasses/:id", verifyJWT, async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
             const result = await cartsapi.deleteOne(filter);
             res.send(result)
         })
 
+        // :::::::::::::: get price by id :::::::::::::::::
+        app.get("/cart/price/:id", async (req, res) => {
+            const id = req.params.id
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const item = await cartsapi.findOne(filter);
+            const price = item.price;
+            console.log(price);
+            res.send({ price })
+        })
 
+
+        // create payment intent
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = parseInt(price * 100);
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+
+
+        // payment related api
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentCollection.insertOne(payment);
+
+            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+            const deleteResult = await cartCollection.deleteMany(query)
+
+            res.send({ insertResult, deleteResult });
+        })
+
+        // :::::::::::::::: update payment status after payment get successfull ::::::::::::::::
+        app.patch("/cart/pay/:id", verifyJWT, async (req, res) => {
+            const id = req.params.id
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    payment: "paid"
+                }
+            }
+            const result = await cartsapi.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
+        // ::::::::::::::::: reduce student by one ::::::::::::::::::
+        app.patch("/allclasses/:id", verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: new ObjectId(id) }
+            const find = await classesapi.find(filter);
+            const totalStudentsGet = find.totalStudents;
+            const availableSeatsGet = find.availableSeats
+            const updateDoc = {
+                $set: {
+                    totalStudents: totalStudentsGet + 1,
+                    availableSeats: availableSeatsGet - 1
+                }
+            }
+            const result = await classesapi.updateOne(filter, updateDoc);
+            res.send(result)
+        })
 
 
 
