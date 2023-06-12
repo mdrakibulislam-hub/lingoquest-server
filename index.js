@@ -217,6 +217,16 @@ async function run() {
 
 
 
+        //:::::::::::::: add class to database collection ::::::::::::
+        app.post("/allclasses", async (req, res) => {
+            const classData = req.body
+            console.log(classData);
+            const result = await classesapi.insertOne(classData);
+            res.send(result)
+        })
+
+
+
 
 
 
