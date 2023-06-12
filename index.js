@@ -53,9 +53,6 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        // Send a ping to confirm a successful connection
-        // await client.db("admin").command({ ping: 1 });
-        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         const classesapi = client.db('lingoquest').collection('lingoquest-classes');
         const instructorsapi = client.db('lingoquest').collection('lingoquest-instructors')
@@ -66,32 +63,32 @@ async function run() {
 
         // :::::::::::::::::::: verify admin via jwt :::::::::::::::
 
-        const verifyAdmin = async (req, res, next) => {
-            const email = req.decoded.email;
-            console.log(email);
-            const query = { email: email }
-            console.log(query);
-            const user = await allusersapi.findOne(query);
-            if (user?.role !== 'admin') {
-                return res.status(403).send({ error: true, message: 'forbidden message' });
-            }
-            next();
-        }
+        // const verifyAdmin = async (req, res, next) => {
+        //     const email = req.decoded.email;
+        //     console.log(email);
+        //     const query = { email: email }
+        //     console.log(query);
+        //     const user = await allusersapi.findOne(query);
+        //     if (user?.role !== 'admin') {
+        //         return res.status(403).send({ error: true, message: 'forbidden message' });
+        //     }
+        //     next();
+        // }
 
 
-        // :::::::::::::::::::: verify instructor via jwt :::::::::::::::
+        // // :::::::::::::::::::: verify instructor via jwt :::::::::::::::
 
-        const verifyInstructor = async (req, res, next) => {
-            const email = req.decoded.email;
-            console.log(email);
-            const query = { email: email }
-            console.log(query);
-            const user = await allusersapi.findOne(query);
-            if (user?.role !== 'instructor') {
-                return res.status(403).send({ error: true, message: 'forbidden message' });
-            }
-            next();
-        }
+        // const verifyInstructor = async (req, res, next) => {
+        //     const email = req.decoded.email;
+        //     console.log(email);
+        //     const query = { email: email }
+        //     console.log(query);
+        //     const user = await allusersapi.findOne(query);
+        //     if (user?.role !== 'instructor') {
+        //         return res.status(403).send({ error: true, message: 'forbidden message' });
+        //     }
+        //     next();
+        // }
 
 
         // ::::::::::: JWT for security ::::::::::::
@@ -103,7 +100,7 @@ async function run() {
         })
 
         // :::::::::::::: get all classes for admin api ::::::::::::::::::
-        app.get('/allclassesforadmin', verifyJWT, verifyAdmin, async (req, res) => {
+        app.get('/allclassesforadmin', verifyJWT, async (req, res) => {
             const classes = await classesapi.find({}).sort({ totalStudents: -1 }).toArray();
             res.send(classes)
         })
@@ -202,14 +199,14 @@ async function run() {
 
 
         // :::::::::::::: get all users api ::::::::::::::::::
-        app.get("/user", verifyJWT, verifyAdmin, async (req, res) => {
+        app.get("/user", verifyJWT, async (req, res) => {
             const result = await allusersapi.find({}).toArray();
             res.send(result)
         })
 
 
         // :::::::::::::: make user role to admin request ::::::::::::
-        app.patch("/updaterole/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
+        app.patch("/updaterole/admin/:id", verifyJWT, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = { _id: new ObjectId(id) };
@@ -224,7 +221,7 @@ async function run() {
         })
 
         // ::::::::::::::: make user role to instructor request ::::::::::::::
-        app.patch("/updaterole/instructor/:id", verifyJWT, verifyAdmin, async (req, res) => {
+        app.patch("/updaterole/instructor/:id", verifyJWT, async (req, res) => {
             const id = req.params.id
             console.log(id);
             const filter = { _id: new ObjectId(id) }
@@ -238,7 +235,7 @@ async function run() {
         })
 
         // :::::::::::::::: post instructor data to instructor db collection :::::::::::
-        app.post("/instructor", verifyJWT, verifyAdmin, async (req, res) => {
+        app.post("/instructor", verifyJWT, async (req, res) => {
             const instructorDetails = req.body;
             console.log(instructorDetails);
             const result = await instructorsapi.insertOne(instructorDetails);
@@ -247,7 +244,7 @@ async function run() {
 
 
         // ::::::::::::::: pending class reject status update api :::::::::::::
-        app.patch("/classes/reject/:id", verifyJWT, verifyAdmin, async (req, res) => {
+        app.patch("/classes/reject/:id", verifyJWT, async (req, res) => {
             const id = req.params.id;
             console.log(id);
             const filter = { _id: new ObjectId(id) }
@@ -291,7 +288,7 @@ async function run() {
 
 
         //:::::::::::::: add class to database collection ::::::::::::
-        app.post("/allclasses", verifyJWT, verifyInstructor, async (req, res) => {
+        app.post("/allclasses", async (req, res) => {
             const classData = req.body
             console.log(classData);
             const result = await classesapi.insertOne(classData);
@@ -300,7 +297,7 @@ async function run() {
 
 
         // ::::::::::::::::::: get instructor all class ::::::::::::::::::::::
-        app.get("/classes/all/instructor/:email", verifyJWT, verifyInstructor, async (req, res) => {
+        app.get("/classes/all/instructor/:email", verifyJWT, async (req, res) => {
             const email = req.params.email;
             console.log(email);
             const filter = { instructorEmail: email };
@@ -310,7 +307,7 @@ async function run() {
 
 
         // :::::::::::::::::: handle instructor class delete ::::::::::::::::
-        app.delete("/allclasses/delete/:id", verifyJWT, verifyInstructor, async (req, res) => {
+        app.delete("/allclasses/delete/:id", verifyJWT, async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
             const result = await classesapi.deleteOne(filter);
@@ -378,30 +375,24 @@ async function run() {
             res.send(result)
         })
 
-        // ::::::::::::::::: reduce student by one ::::::::::::::::::
-        app.patch("/allclasses/:id", verifyJWT, async (req, res) => {
-            const id = req.params.id;
-            console.log(id);
+
+
+        // ::::::::::::::: get classdata by id ::::::::::::::::
+        app.get("/class/:id", verifyJWT, async (req, res) => {
+            const id = req.params.id
             const filter = { _id: new ObjectId(id) }
-            const find = await classesapi.find(filter);
-            const totalStudentsGet = find.totalStudents;
-            const availableSeatsGet = find.availableSeats
-            const updateDoc = {
-                $set: {
-                    totalStudents: totalStudentsGet + 1,
-                    availableSeats: availableSeatsGet - 1
-                }
-            }
-            const result = await classesapi.updateOne(filter, updateDoc);
-            res.send(result)
+            const result = classesapi.findOne()
+
         })
+
+
+
 
 
 
 
     } finally {
         // Ensures that the client will close when you finish/error
-        // await client.close();
     }
 }
 run().catch(console.dir);
