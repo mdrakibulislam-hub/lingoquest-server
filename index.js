@@ -193,6 +193,20 @@ async function run() {
         })
 
 
+        // ::::::::::::: admin class feedback request :::::::::::::
+        app.patch("/sendfeedback/class/:id", async (req, res) => {
+            const id = req.params.id;
+            const feedback = req.body.userFeedback;
+            console.log(id, feedback);
+            const filter = { _id: new ObjectId(id) }
+            const updateFeedback = {
+                $set: { adminsFeedback: feedback }
+            }
+            const result = await classesapi.updateOne(filter, updateFeedback)
+            res.send(result)
+        })
+
+
 
 
 
