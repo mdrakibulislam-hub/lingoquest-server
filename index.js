@@ -226,6 +226,25 @@ async function run() {
         })
 
 
+        // ::::::::::::::::::: get instructor all class ::::::::::::::::::::::
+        app.get("/classes/all/instructor/:email", async (req, res) => {
+            const email = req.params.email;
+            console.log(email);
+            const filter = { instructorEmail: email };
+            const result = await classesapi.find(filter).toArray();
+            res.send(result)
+        })
+
+
+        // :::::::::::::::::: handle instructor class delete ::::::::::::::::
+        app.delete("allclasses/delete/:id", async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) }
+            const result = await classesapi.deleteOne(filter);
+            res.send(result)
+        })
+
+
 
 
 
