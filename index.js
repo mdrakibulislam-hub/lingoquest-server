@@ -164,6 +164,15 @@ async function run() {
             res.send(result)
         })
 
+        // :::::::::::::::: post instructor data to instructor db collection :::::::::::
+        app.post("/instructor", async (req, res) => {
+            const instructorDetails = req.body;
+            console.log(instructorDetails);
+            const result = await instructorsapi.insertOne(instructorDetails);
+            res.send(result);
+        })
+
+
         // ::::::::::::::: pending class reject status update api :::::::::::::
         app.patch("/classes/reject/:id", async (req, res) => {
             const id = req.params.id;
