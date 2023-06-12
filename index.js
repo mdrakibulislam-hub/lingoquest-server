@@ -237,10 +237,18 @@ async function run() {
 
 
         // :::::::::::::::::: handle instructor class delete ::::::::::::::::
-        app.delete("allclasses/delete/:id", async (req, res) => {
+        app.delete("/allclasses/delete/:id", async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
             const result = await classesapi.deleteOne(filter);
+            res.send(result)
+        })
+
+        // :::::::::::::: selected class delete api :::::::::::::
+        app.delete("/user/selectedclasses/:id", async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) }
+            const result = await cartsapi.deleteOne(filter);
             res.send(result)
         })
 
