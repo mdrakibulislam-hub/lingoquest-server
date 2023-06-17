@@ -3,7 +3,7 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
-const port = process.env.port || 5000;
+const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 
@@ -61,19 +61,19 @@ async function run() {
         const enrolledclassapi = client.db('lingoquest').collection('enrolledclass')
 
 
-        // :::::::::::::::::::: verify admin via jwt :::::::::::::::
+        // :::::::::::::::::::: verify admin via jwt:::::::::::::::
 
-        // const verifyAdmin = async (req, res, next) => {
-        //     const email = req.decoded.email;
-        //     console.log(email);
-        //     const query = { email: email }
-        //     console.log(query);
-        //     const user = await allusersapi.findOne(query);
-        //     if (user?.role !== 'admin') {
-        //         return res.status(403).send({ error: true, message: 'forbidden message' });
-        //     }
-        //     next();
-        // }
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            console.log(email);
+            const query = { email: email }
+            console.log(query);
+            const user = await allusersapi.findOne(query);
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' });
+            }
+            next();
+        }
 
 
         // // :::::::::::::::::::: verify instructor via jwt :::::::::::::::
@@ -171,7 +171,7 @@ async function run() {
             console.log(email);
             const query = { "email": email }
             const user = await allusersapi.findOne(query);
-            const result = user?.role || { message: "user not found" }
+            const result = await user?.role || { message: "user not found" }
             res.send(result)
         })
 
@@ -328,7 +328,7 @@ async function run() {
             console.log(id);
             const filter = { _id: new ObjectId(id) }
             const item = await cartsapi.findOne(filter);
-            const price = item.price;
+            const price = await item.price;
             console.log(price);
             res.send({ price })
         })
@@ -351,15 +351,15 @@ async function run() {
 
 
         // payment related api
-        app.post('/payments', verifyJWT, async (req, res) => {
-            const payment = req.body;
-            const insertResult = await paymentCollection.insertOne(payment);
+        // app.post('/payments', verifyJWT, async (req, res) => {
+        //     const payment = req.body;
+        //     const insertResult = await paymentCollection.insertOne(payment);
 
-            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
-            const deleteResult = await cartCollection.deleteMany(query)
+        //     const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
+        //     const deleteResult = await cartCollection.deleteMany(query)
 
-            res.send({ insertResult, deleteResult });
-        })
+        //     res.send({ insertResult, deleteResult });
+        // })
 
         // :::::::::::::::: update payment status after payment get successfull ::::::::::::::::
         app.patch("/cart/pay/:id", verifyJWT, async (req, res) => {
@@ -381,7 +381,8 @@ async function run() {
         app.get("/class/:id", verifyJWT, async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
-            const result = classesapi.findOne()
+            const result = classesapi.findOne(filter);
+            res.send(result)
 
         })
 
